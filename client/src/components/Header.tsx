@@ -1,0 +1,42 @@
+"use client";
+
+import { useRouter } from "next/navigation";
+import axios from "axios";
+import Link from "next/link";
+
+export default function Header() {
+  const router = useRouter();
+
+  async function handleLogout() {
+    await axios.post("/api/logout");
+    router.push("/login");
+  }
+
+  return (
+    <header className="bg-white dark:bg-gray-900 border-b border-gray-100 dark:border-gray-800">
+      <div className="max-w-5xl mx-auto px-6 h-14 flex items-center justify-between">
+        <Link
+          href="/"
+          className="text-base font-semibold text-gray-900 dark:text-white hover:opacity-80 transition"
+        >
+          Job Tracker
+        </Link>
+
+        <nav className="flex items-center gap-6 text-sm">
+          <Link
+            href="/users"
+            className="text-gray-600 dark:text-gray-400 hover:text-gray-900 dark:hover:text-white transition"
+          >
+            Users
+          </Link>
+          <button
+            onClick={handleLogout}
+            className="text-red-500 hover:text-red-600 dark:hover:text-red-400 font-medium transition"
+          >
+            Logout
+          </button>
+        </nav>
+      </div>
+    </header>
+  );
+}
