@@ -10,6 +10,28 @@ export function readUsers(): any[] {
   }
 }
 
+export function readJobs(): any[] {
+  try {
+    const data = fs.readFileSync("src/data/jobs.json", "utf-8");
+    return JSON.parse(data);
+  } catch (err) {
+    console.error("Error reading jobs.json:", err);
+    return [];
+  }
+}
+
+export function writeJobs(jobs: any[]): void {
+  try {
+    fs.writeFileSync(
+      "src/data/jobs.json",
+      JSON.stringify(jobs, null, 2),
+      "utf-8",
+    );
+  } catch (err) {
+    console.error("Error writing to jobs.json:", err);
+  }
+}
+
 export function writeUsers(users: any[]): void {
   try {
     fs.writeFileSync(

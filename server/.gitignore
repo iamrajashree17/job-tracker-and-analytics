@@ -9,3 +9,4 @@ uploads/resumes/*
 logs/
 *.log
 .DS_Store
+data/

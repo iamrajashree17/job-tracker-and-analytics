@@ -69,12 +69,12 @@ export default function SignUp() {
   }
 
   return (
-    <div className="min-h-screen flex items-center justify-center bg-gray-50 dark:bg-gray-950">
-      <div className="w-full max-w-md bg-white dark:bg-gray-900 rounded-2xl shadow-lg p-8">
-        <h1 className="text-2xl font-bold text-gray-900 dark:text-white mb-1">
+    <div className="page-centered">
+      <div className="card w-full max-w-md p-8">
+        <h1 className="page-title mb-1">
           Create an account
         </h1>
-        <p className="text-sm text-gray-500 dark:text-gray-400 mb-8">
+        <p className="text-muted mb-8">
           Start tracking your job applications
         </p>
 
@@ -88,7 +88,7 @@ export default function SignUp() {
         )}
 
         {serverError && (
-          <div className="mb-6 rounded-lg bg-red-50 dark:bg-red-900/20 border border-red-200 dark:border-red-800 px-4 py-3 text-sm text-red-600 dark:text-red-400">
+          <div className="alert-error mb-6">
             {serverError}
           </div>
         )}
@@ -160,7 +160,7 @@ export default function SignUp() {
           </button>
         </form>
 
-        <p className="mt-6 text-center text-sm text-gray-500 dark:text-gray-400">
+        <p className="mt-6 text-center text-muted">
           Already have an account?{" "}
           <Link
             href="/login"

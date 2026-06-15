@@ -29,6 +29,12 @@ export default function Header() {
           >
             Users
           </Link>
+          <Link
+            href="/jobs"
+            className="text-gray-600 dark:text-gray-400 hover:text-gray-900 dark:hover:text-white transition"
+          >
+            Jobs
+          </Link>
           <button
             onClick={handleLogout}
             className="text-red-500 hover:text-red-600 dark:hover:text-red-400 font-medium transition"

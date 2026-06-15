@@ -37,4 +37,32 @@ body {
   .form-label {
     @apply block text-sm font-medium text-gray-700 dark:text-gray-300 mb-1;
   }
+
+  .page-bg {
+    @apply min-h-screen bg-gray-50 dark:bg-gray-950;
+  }
+
+  .page-centered {
+    @apply min-h-screen flex items-center justify-center bg-gray-50 dark:bg-gray-950;
+  }
+
+  .card {
+    @apply rounded-2xl bg-white dark:bg-gray-900 shadow-lg;
+  }
+
+  .alert-error {
+    @apply rounded-lg bg-red-50 dark:bg-red-900/20 border border-red-200 dark:border-red-800 px-4 py-3 text-sm text-red-600 dark:text-red-400;
+  }
+
+  .btn-add {
+    @apply inline-flex items-center gap-2 px-4 py-2 bg-blue-600 hover:bg-blue-700 text-white text-sm font-semibold rounded-lg transition;
+  }
+
+  .page-title {
+    @apply text-2xl font-bold text-gray-900 dark:text-white;
+  }
+
+  .text-muted {
+    @apply text-sm text-gray-500 dark:text-gray-400;
+  }
 }
