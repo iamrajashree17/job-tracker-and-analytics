@@ -31,7 +31,10 @@ body {
   }
 
   .btn-primary {
-    @apply w-full py-2.5 px-4 bg-blue-600 hover:bg-blue-700 text-white font-semibold rounded-lg transition;
+    @apply w-full py-2.5 px-4 bg-blue-600 text-white font-semibold rounded-lg transition;
+  }
+  .btn-primary:hover {
+    @apply bg-blue-700;
   }
 
   .form-label {
@@ -55,7 +58,10 @@ body {
   }
 
   .btn-add {
-    @apply inline-flex items-center gap-2 px-4 py-2 bg-blue-600 hover:bg-blue-700 text-white text-sm font-semibold rounded-lg transition;
+    @apply inline-flex items-center gap-2 px-4 py-2 bg-blue-600 text-white text-sm font-semibold rounded-lg transition;
+  }
+  .btn-add:hover {
+    @apply bg-blue-700;
   }
 
   .page-title {
