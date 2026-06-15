@@ -41,6 +41,24 @@ export default function Header() {
           >
             Logout
           </button>
+          <Link
+            href="/profile"
+            aria-label="Profile"
+            className="text-gray-600 dark:text-gray-400 hover:text-gray-900 dark:hover:text-white transition"
+          >
+            <svg
+              xmlns="http://www.w3.org/2000/svg"
+              viewBox="0 0 24 24"
+              fill="currentColor"
+              className="w-6 h-6"
+            >
+              <path
+                fillRule="evenodd"
+                d="M12 2a5 5 0 100 10A5 5 0 0012 2zM4 20a8 8 0 1116 0H4z"
+                clipRule="evenodd"
+              />
+            </svg>
+          </Link>
         </nav>
       </div>
     </header>
