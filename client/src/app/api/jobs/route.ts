@@ -6,7 +6,12 @@ export async function GET(request: NextRequest) {
     const token = request.headers.get("x-access-token");
     if (!token) return Response.json({ error: "Unauthorized" }, { status: 401 });
 
-    const res = await axios.get(process.env.API_URL + "/api/jobs", {
+    const { searchParams } = new URL(request.url);
+    const status = searchParams.get("status");
+    const url = new URL(process.env.API_URL + "/api/jobs");
+    if (status) url.searchParams.set("status", status);
+
+    const res = await axios.get(url.toString(), {
       headers: { Authorization: `Bearer ${token}` },
     });
     return Response.json({ jobs: res.data });

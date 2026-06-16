@@ -2,7 +2,8 @@ import { Request, Response } from "express";
 import { addJob, listJobs, updateJob } from "../services/job.service";
 
 export function jobHandler(req: Request, res: Response) {
-    const jobs = listJobs();
+    const status = req.query.status as string | undefined;
+    const jobs = listJobs(status);
     res.status(200).json(jobs);
 }
 

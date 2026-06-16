@@ -32,21 +32,66 @@ const STATUS_LABELS: Record<Job["status"], string> = {
 
 const ALL_STATUSES = Object.keys(STATUS_LABELS) as Job["status"][];
 
+type StatusFilter = Job["status"] | "all";
+
+const FILTER_STYLES: Record<StatusFilter, { active: string; inactive: string }> = {
+  all:       { active: "bg-gray-900 text-white dark:bg-white dark:text-gray-900", inactive: "text-gray-600 dark:text-gray-400 hover:text-gray-900 dark:hover:text-white hover:bg-gray-100 dark:hover:bg-gray-800" },
+  applied:   { active: "bg-blue-600 text-white", inactive: "text-blue-700 dark:text-blue-400 hover:bg-blue-50 dark:hover:bg-blue-900/30" },
+  screening: { active: "bg-yellow-500 text-white", inactive: "text-yellow-700 dark:text-yellow-400 hover:bg-yellow-50 dark:hover:bg-yellow-900/30" },
+  interview: { active: "bg-purple-600 text-white", inactive: "text-purple-700 dark:text-purple-400 hover:bg-purple-50 dark:hover:bg-purple-900/30" },
+  offer:     { active: "bg-green-600 text-white", inactive: "text-green-700 dark:text-green-400 hover:bg-green-50 dark:hover:bg-green-900/30" },
+  rejected:  { active: "bg-red-600 text-white", inactive: "text-red-700 dark:text-red-400 hover:bg-red-50 dark:hover:bg-red-900/30" },
+};
+
+const FILTER_OPTIONS: { value: StatusFilter; label: string }[] = [
+  { value: "all", label: "All" },
+  { value: "applied", label: "Applied" },
+  { value: "screening", label: "Screening" },
+  { value: "interview", label: "Interview" },
+  { value: "offer", label: "Offer" },
+  { value: "rejected", label: "Rejected" },
+];
+
 export default function Jobs() {
   const [jobs, setJobs] = useState<Job[]>([]);
+  const [counts, setCounts] = useState<Record<string, number>>({});
   const [loading, setLoading] = useState(true);
   const [error, setError] = useState("");
+  const [activeFilter, setActiveFilter] = useState<StatusFilter>("all");
   const [openStatusId, setOpenStatusId] = useState<string | null>(null);
   const [dropdownPos, setDropdownPos] = useState<{ top: number; left: number } | null>(null);
   const [updating, setUpdating] = useState<string | null>(null);
 
-  useEffect(() => {
+  function computeCounts(allJobs: Job[]) {
+    const c: Record<string, number> = { all: allJobs.length };
+    for (const job of allJobs) {
+      c[job.status] = (c[job.status] ?? 0) + 1;
+    }
+    setCounts(c);
+  }
+
+  function fetchJobs(filter: StatusFilter) {
+    setLoading(true);
+    setError("");
+    const url = filter === "all" ? "/api/jobs" : `/api/jobs?status=${filter}`;
     axios
-      .get<{ jobs: Job[] }>("/api/jobs")
-      .then((res) => setJobs(res.data.jobs))
+      .get<{ jobs: Job[] }>(url)
+      .then((res) => {
+        setJobs(res.data.jobs);
+        if (filter === "all") computeCounts(res.data.jobs);
+      })
       .catch(() => setError("Failed to load jobs."))
       .finally(() => setLoading(false));
+  }
+
+  useEffect(() => {
+    fetchJobs("all");
   }, []);
+
+  function handleFilterChange(filter: StatusFilter) {
+    setActiveFilter(filter);
+    fetchJobs(filter);
+  }
 
   function openDropdown(e: React.MouseEvent<HTMLButtonElement>, jobId: string) {
     if (openStatusId === jobId) {
@@ -73,6 +118,16 @@ export default function Jobs() {
     setUpdating(jobId);
     try {
       await axios.patch(`/api/jobs/${jobId}`, { status: newStatus });
+      if (prevStatus && prevStatus !== newStatus) {
+        setCounts((prev) => ({
+          ...prev,
+          [prevStatus]: Math.max(0, (prev[prevStatus] ?? 0) - 1),
+          [newStatus]: (prev[newStatus] ?? 0) + 1,
+        }));
+      }
+      if (activeFilter !== "all" && newStatus !== activeFilter) {
+        setJobs((curr) => curr.filter((j) => j.id !== jobId));
+      }
     } catch (err: any) {
       console.error("Status update failed:", err?.response?.data ?? err?.message ?? err);
       setError(err?.response?.data?.error ?? err?.response?.data?.message ?? "Failed to update status.");
@@ -122,6 +177,23 @@ export default function Jobs() {
           </Link>
         </div>
 
+        {/* Status filter tabs */}
+        <div className="flex flex-wrap gap-2 mt-4 mb-5">
+          {FILTER_OPTIONS.map(({ value, label }) => (
+            <button
+              key={value}
+              onClick={() => handleFilterChange(value)}
+              className={`px-3.5 py-1.5 rounded-full text-xs font-semibold transition-all ${
+                activeFilter === value
+                  ? FILTER_STYLES[value].active
+                  : FILTER_STYLES[value].inactive
+              }`}
+            >
+              {label}{counts[value] !== undefined ? ` (${counts[value]})` : ""}
+            </button>
+          ))}
+        </div>
+
         {loading && <p className="text-muted mt-4">Loading...</p>}
 
         {error && (
@@ -133,17 +205,22 @@ export default function Jobs() {
 
         {!loading && !error && (
           <>
-            <p className="text-muted mb-6">
+            <p className="text-muted mb-4">
               {jobs.length} {jobs.length === 1 ? "application" : "applications"}
+              {activeFilter !== "all" && ` · filtered by ${STATUS_LABELS[activeFilter]}`}
             </p>
 
             {jobs.length === 0 ? (
               <div className="card p-12 text-center">
-                <p className="text-gray-400 dark:text-gray-500 text-sm mb-4">No job applications yet.</p>
-                <Link href="/jobs/add" className="btn-add">
-                  <span className="text-base leading-none">+</span>
-                  Add your first job
-                </Link>
+                <p className="text-gray-400 dark:text-gray-500 text-sm mb-4">
+                  {activeFilter === "all" ? "No job applications yet." : `No jobs with status "${STATUS_LABELS[activeFilter]}".`}
+                </p>
+                {activeFilter === "all" && (
+                  <Link href="/jobs/add" className="btn-add">
+                    <span className="text-base leading-none">+</span>
+                    Add your first job
+                  </Link>
+                )}
               </div>
             ) : (
               <div className="card overflow-hidden">

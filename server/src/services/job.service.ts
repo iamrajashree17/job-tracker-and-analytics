@@ -1,7 +1,10 @@
 import { readJobs, writeJobs } from "../utils/fileDb.utils";
 
-export function listJobs() {
+export function listJobs(status?: string) {
     const jobs = readJobs();
+    if (status) {
+        return jobs.filter((job: any) => job.status === status);
+    }
     return jobs;
 }
 
