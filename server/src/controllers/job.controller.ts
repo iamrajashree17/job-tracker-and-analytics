@@ -1,10 +1,19 @@
 import { Request, Response } from "express";
-import { addJob, listJobs, updateJob } from "../services/job.service";
+import { addJob, getJob, listJobs, updateJob } from "../services/job.service";
 
 export function jobHandler(req: Request, res: Response) {
     const status = req.query.status as string | undefined;
     const jobs = listJobs(status);
     res.status(200).json(jobs);
+}
+
+export function getJobHandler(req: Request, res: Response) {
+    try {
+        const job = getJob(req.params.id as string);
+        res.status(200).json(job);
+    } catch (error) {
+        res.status(404).json({ message: (error as Error).message });
+    }
 }
 
 export function addJobHandler(req: Request, res: Response) {

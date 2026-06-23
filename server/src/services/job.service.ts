@@ -15,6 +15,13 @@ export function addJob(job: any) {
     writeJobs(jobs);
 }
 
+export function getJob(jobId: string) {
+    const jobs = readJobs();
+    const job = jobs.find((j: any) => j.id === jobId);
+    if (!job) throw new Error(`Job with ID ${jobId} not found.`);
+    return job;
+}
+
 export function updateJob(jobId: string, updatedJob: any) {
     const jobs = readJobs();
     const jobIndex = jobs.findIndex((job) => job.id === jobId);

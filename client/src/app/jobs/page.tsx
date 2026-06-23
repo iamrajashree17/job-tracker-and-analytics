@@ -8,7 +8,7 @@ type Job = {
   id: string;
   company: string;
   role: string;
-  status: "applied" | "screening" | "interview" | "offer" | "rejected";
+  status: "applied" | "screening" | "interview" | "offer" | "rejected" | "not_moving_forward";
   appliedAt: string | null;
   jobUrl?: string | null;
   notes?: string | null;
@@ -20,6 +20,7 @@ const STATUS_STYLES: Record<Job["status"], string> = {
   interview: "bg-purple-50 text-purple-700 dark:bg-purple-900/30 dark:text-purple-300 border border-purple-200 dark:border-purple-800",
   offer:     "bg-green-50 text-green-700 dark:bg-green-900/30 dark:text-green-300 border border-green-200 dark:border-green-800",
   rejected:  "bg-red-50 text-red-700 dark:bg-red-900/30 dark:text-red-300 border border-red-200 dark:border-red-800",
+  not_moving_forward: "bg-gray-50 text-gray-600 dark:bg-gray-800/50 dark:text-gray-400 border border-gray-200 dark:border-gray-700",
 };
 
 const STATUS_LABELS: Record<Job["status"], string> = {
@@ -28,6 +29,7 @@ const STATUS_LABELS: Record<Job["status"], string> = {
   interview: "Interview",
   offer:     "Offer",
   rejected:  "Rejected",
+  not_moving_forward: "Not Moving Forward",
 };
 
 const ALL_STATUSES = Object.keys(STATUS_LABELS) as Job["status"][];
@@ -41,6 +43,7 @@ const FILTER_STYLES: Record<StatusFilter, { active: string; inactive: string }> 
   interview: { active: "bg-purple-600 text-white", inactive: "text-purple-700 dark:text-purple-400 hover:bg-purple-50 dark:hover:bg-purple-900/30" },
   offer:     { active: "bg-green-600 text-white", inactive: "text-green-700 dark:text-green-400 hover:bg-green-50 dark:hover:bg-green-900/30" },
   rejected:  { active: "bg-red-600 text-white", inactive: "text-red-700 dark:text-red-400 hover:bg-red-50 dark:hover:bg-red-900/30" },
+  not_moving_forward: { active: "bg-gray-600 text-white", inactive: "text-gray-600 dark:text-gray-400 hover:bg-gray-100 dark:hover:bg-gray-800" },
 };
 
 const FILTER_OPTIONS: { value: StatusFilter; label: string }[] = [
@@ -49,6 +52,7 @@ const FILTER_OPTIONS: { value: StatusFilter; label: string }[] = [
   { value: "screening", label: "Screening" },
   { value: "interview", label: "Interview" },
   { value: "offer", label: "Offer" },
+  { value: "not_moving_forward", label: "Not Moving Forward" },
   { value: "rejected", label: "Rejected" },
 ];
 
@@ -229,9 +233,10 @@ export default function Jobs() {
                     <tr className="border-b border-gray-100 dark:border-gray-800 text-left">
                       <th className="px-6 py-4 font-semibold text-gray-700 dark:text-gray-300">Company</th>
                       <th className="px-6 py-4 font-semibold text-gray-700 dark:text-gray-300">Role</th>
-                      <th className="px-6 py-4 font-semibold text-gray-700 dark:text-gray-300">Status</th>
+                      {activeFilter !== "rejected" && activeFilter !== "not_moving_forward" && <th className="px-6 py-4 font-semibold text-gray-700 dark:text-gray-300">Status</th>}
                       <th className="px-6 py-4 font-semibold text-gray-700 dark:text-gray-300">Applied</th>
                       <th className="px-6 py-4 font-semibold text-gray-700 dark:text-gray-300">Notes</th>
+                      <th className="px-6 py-4" />
                     </tr>
                   </thead>
                   <tbody>
@@ -257,27 +262,29 @@ export default function Jobs() {
                           )}
                         </td>
                         <td className="px-6 py-4 text-gray-600 dark:text-gray-400">{job.role}</td>
-                        <td className="px-6 py-4">
-                          <button
-                            onClick={(e) => openDropdown(e, job.id)}
-                            disabled={updating === job.id}
-                            className={`inline-flex items-center gap-1 px-2.5 py-0.5 rounded-full text-xs font-medium transition ${
-                              STATUS_STYLES[job.status]
-                            } ${updating === job.id ? "opacity-50 cursor-not-allowed" : "cursor-pointer"}`}
-                          >
-                            {STATUS_LABELS[job.status]}
-                            <svg
-                              xmlns="http://www.w3.org/2000/svg"
-                              viewBox="0 0 12 12"
-                              className="w-3 h-3 opacity-60"
-                              fill="none"
-                              stroke="currentColor"
-                              strokeWidth="1.5"
+                        {activeFilter !== "rejected" && activeFilter !== "not_moving_forward" && (
+                          <td className="px-6 py-4">
+                            <button
+                              onClick={(e) => openDropdown(e, job.id)}
+                              disabled={updating === job.id}
+                              className={`inline-flex items-center gap-1 px-2.5 py-0.5 rounded-full text-xs font-medium transition ${
+                                STATUS_STYLES[job.status]
+                              } ${updating === job.id ? "opacity-50 cursor-not-allowed" : "cursor-pointer"}`}
                             >
-                              <path d="M2.5 4.5l3.5 3 3.5-3" strokeLinecap="round" strokeLinejoin="round" />
-                            </svg>
-                          </button>
-                        </td>
+                              {STATUS_LABELS[job.status]}
+                              <svg
+                                xmlns="http://www.w3.org/2000/svg"
+                                viewBox="0 0 12 12"
+                                className="w-3 h-3 opacity-60"
+                                fill="none"
+                                stroke="currentColor"
+                                strokeWidth="1.5"
+                              >
+                                <path d="M2.5 4.5l3.5 3 3.5-3" strokeLinecap="round" strokeLinejoin="round" />
+                              </svg>
+                            </button>
+                          </td>
+                        )}
                         <td className="px-6 py-4 text-gray-500 dark:text-gray-500">
                           {job.appliedAt
                             ? new Date(job.appliedAt).toLocaleDateString("en-US", {
@@ -303,6 +310,14 @@ export default function Jobs() {
                           ) : (
                             <span className="text-gray-300 dark:text-gray-600 text-xs">—</span>
                           )}
+                        </td>
+                        <td className="px-4 py-4 text-right">
+                          <Link
+                            href={`/jobs/${job.id}/edit`}
+                            className="text-xs text-gray-400 hover:text-blue-600 dark:hover:text-blue-400 transition font-medium"
+                          >
+                            Edit
+                          </Link>
                         </td>
                       </tr>
                     ))}

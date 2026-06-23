@@ -1,7 +1,7 @@
 "use client";
 
-import { useState } from "react";
-import { useRouter } from "next/navigation";
+import { useEffect, useState } from "react";
+import { useRouter, useParams } from "next/navigation";
 import Link from "next/link";
 import axios from "axios";
 
@@ -14,39 +14,73 @@ type FormData = {
   notes: string;
 };
 
-export default function AddJob() {
+export default function EditJob() {
   const router = useRouter();
-  const [form, setForm] = useState<FormData>({
-    company: "",
-    role: "",
-    status: "applied",
-    appliedAt: new Date().toISOString().split("T")[0],
-    jobUrl: "",
-    notes: "",
-  });
-  const [loading, setLoading] = useState(false);
+  const { id } = useParams<{ id: string }>();
+  const [form, setForm] = useState<FormData | null>(null);
+  const [loading, setLoading] = useState(true);
+  const [saving, setSaving] = useState(false);
   const [error, setError] = useState("");
 
+  useEffect(() => {
+    axios
+      .get<FormData>(`/api/jobs/${id}`)
+      .then((res) => {
+        const job = res.data;
+        setForm({
+          company: job.company ?? "",
+          role: job.role ?? "",
+          status: job.status ?? "applied",
+          appliedAt: job.appliedAt ? String(job.appliedAt).split("T")[0] : "",
+          jobUrl: (job as any).jobUrl ?? "",
+          notes: (job as any).notes ?? "",
+        });
+      })
+      .catch(() => setError("Failed to load job."))
+      .finally(() => setLoading(false));
+  }, [id]);
+
   function handleChange(
-    e: React.ChangeEvent<
-      HTMLInputElement | HTMLSelectElement | HTMLTextAreaElement
-    >
+    e: React.ChangeEvent<HTMLInputElement | HTMLSelectElement | HTMLTextAreaElement>
   ) {
-    setForm((prev) => ({ ...prev, [e.target.name]: e.target.value }));
+    setForm((prev) => prev && { ...prev, [e.target.name]: e.target.value });
   }
 
-  async function handleSubmit(e: React.SubmitEvent<HTMLFormElement>) {
+  async function handleSubmit(e: React.FormEvent<HTMLFormElement>) {
     e.preventDefault();
     setError("");
-    setLoading(true);
+    setSaving(true);
     try {
-      await axios.post("/api/jobs", form);
+      await axios.patch(`/api/jobs/${id}`, form);
       router.push("/jobs");
     } catch {
-      setError("Failed to save job. Please try again.");
+      setError("Failed to save changes. Please try again.");
     } finally {
-      setLoading(false);
+      setSaving(false);
     }
+  }
+
+  if (loading) {
+    return (
+      <div className="page-bg">
+        <div className="max-w-xl mx-auto p-8">
+          <p className="text-muted">Loading...</p>
+        </div>
+      </div>
+    );
+  }
+
+  if (error && !form) {
+    return (
+      <div className="page-bg">
+        <div className="max-w-xl mx-auto p-8">
+          <div className="alert-error">{error}</div>
+          <Link href="/jobs" className="text-sm text-gray-500 hover:text-gray-700 mt-4 inline-block">
+            ← Back to Jobs
+          </Link>
+        </div>
+      </div>
+    );
   }
 
   return (
@@ -59,17 +93,11 @@ export default function AddJob() {
           >
             ← Back to Jobs
           </Link>
-          <h1 className="page-title mt-2">
-            Add New Job
-          </h1>
+          <h1 className="page-title mt-2">Edit Job</h1>
         </div>
 
         <div className="card p-8">
-          {error && (
-            <div className="alert-error mb-6">
-              {error}
-            </div>
-          )}
+          {error && <div className="alert-error mb-6">{error}</div>}
 
           <form onSubmit={handleSubmit} className="space-y-5">
             <div>
@@ -81,8 +109,7 @@ export default function AddJob() {
                 name="company"
                 type="text"
                 required
-                placeholder="e.g. Acme Corp"
-                value={form.company}
+                value={form!.company}
                 onChange={handleChange}
                 className="input-field"
               />
@@ -97,8 +124,7 @@ export default function AddJob() {
                 name="role"
                 type="text"
                 required
-                placeholder="e.g. Software Engineer"
-                value={form.role}
+                value={form!.role}
                 onChange={handleChange}
                 className="input-field"
               />
@@ -111,7 +137,7 @@ export default function AddJob() {
               <select
                 id="status"
                 name="status"
-                value={form.status}
+                value={form!.status}
                 onChange={handleChange}
                 className="input-field"
               >
@@ -119,8 +145,8 @@ export default function AddJob() {
                 <option value="screening">Screening</option>
                 <option value="interview">Interview</option>
                 <option value="offer">Offer</option>
-                <option value="rejected">Rejected</option>
                 <option value="not_moving_forward">Not Moving Forward</option>
+                <option value="rejected">Rejected</option>
               </select>
             </div>
 
@@ -132,7 +158,7 @@ export default function AddJob() {
                 id="appliedAt"
                 name="appliedAt"
                 type="date"
-                value={form.appliedAt}
+                value={form!.appliedAt}
                 onChange={handleChange}
                 className="input-field"
               />
@@ -147,7 +173,7 @@ export default function AddJob() {
                 name="jobUrl"
                 type="url"
                 placeholder="https://..."
-                value={form.jobUrl}
+                value={form!.jobUrl}
                 onChange={handleChange}
                 className="input-field"
               />
@@ -162,7 +188,7 @@ export default function AddJob() {
                 name="notes"
                 rows={3}
                 placeholder="Recruiter name, salary range, next steps..."
-                value={form.notes}
+                value={form!.notes}
                 onChange={handleChange}
                 className="input-field resize-none"
               />
@@ -177,10 +203,10 @@ export default function AddJob() {
               </Link>
               <button
                 type="submit"
-                disabled={loading}
+                disabled={saving}
                 className="flex-1 py-2.5 px-4 bg-blue-600 hover:bg-blue-700 disabled:opacity-60 text-white text-sm font-semibold rounded-lg transition"
               >
-                {loading ? "Saving..." : "Save Job"}
+                {saving ? "Saving..." : "Save Changes"}
               </button>
             </div>
           </form>
