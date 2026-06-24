@@ -8,8 +8,12 @@ export async function GET(request: NextRequest) {
 
     const { searchParams } = new URL(request.url);
     const status = searchParams.get("status");
+    const fromDate = searchParams.get("fromDate");
+    const toDate = searchParams.get("toDate");
     const url = new URL(process.env.API_URL + "/api/jobs");
     if (status) url.searchParams.set("status", status);
+    if (fromDate) url.searchParams.set("fromDate", fromDate);
+    if (toDate) url.searchParams.set("toDate", toDate);
 
     const res = await axios.get(url.toString(), {
       headers: { Authorization: `Bearer ${token}` },

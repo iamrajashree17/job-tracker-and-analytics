@@ -3,7 +3,9 @@ import { addJob, deleteJob, getJob, listJobs, updateJob } from "../services/job.
 
 export function jobHandler(req: Request, res: Response) {
     const status = req.query.status as string | undefined;
-    const jobs = listJobs(status);
+    const fromDate = req.query.fromDate as string | undefined;
+    const toDate = req.query.toDate as string | undefined;
+    const jobs = listJobs(status, fromDate, toDate);
     res.status(200).json(jobs);
 }
 

@@ -68,6 +68,8 @@ export default function Jobs() {
   const [updating, setUpdating] = useState<string | null>(null);
   const [deleting, setDeleting] = useState<string | null>(null);
   const [search, setSearch] = useState("");
+  const [fromDate, setFromDate] = useState("");
+  const [toDate, setToDate] = useState("");
 
   function computeCounts(allJobs: Job[]) {
     const c: Record<string, number> = { all: allJobs.length };
@@ -77,18 +79,20 @@ export default function Jobs() {
     setCounts(c);
   }
 
-  function fetchJobs(filter: StatusFilter) {
+  function fetchJobs(filter: StatusFilter, from = fromDate, to = toDate) {
     setLoading(true);
     setError("");
-    const includeDeleted = filter === "rejected";
-    const url = filter === "all"
-      ? "/api/jobs"
-      : `/api/jobs?status=${filter}${includeDeleted ? "&includeDeleted=true" : ""}`;
+    const params = new URLSearchParams();
+    if (filter !== "all") params.set("status", filter);
+    if (from) params.set("fromDate", from);
+    if (to) params.set("toDate", to);
+    const query = params.toString();
+    const url = query ? `/api/jobs?${query}` : "/api/jobs";
     axios
       .get<{ jobs: Job[] }>(url)
       .then((res) => {
         setJobs(res.data.jobs);
-        if (filter === "all") computeCounts(res.data.jobs);
+        if (filter === "all" && !from && !to) computeCounts(res.data.jobs);
       })
       .catch(() => setError("Failed to load jobs."))
       .finally(() => setLoading(false));
@@ -202,26 +206,52 @@ export default function Jobs() {
           </Link>
         </div>
 
-        {/* Search */}
-        <div className="relative mt-4 mb-3">
-          <svg xmlns="http://www.w3.org/2000/svg" viewBox="0 0 16 16" fill="currentColor" className="absolute left-3 top-1/2 -translate-y-1/2 w-3.5 h-3.5 text-gray-400 pointer-events-none">
-            <path fillRule="evenodd" d="M9.965 11.026a5 5 0 1 1 1.06-1.06l2.755 2.754a.75.75 0 1 1-1.06 1.06l-2.755-2.754ZM10.5 7a3.5 3.5 0 1 1-7 0 3.5 3.5 0 0 1 7 0Z" clipRule="evenodd" />
-          </svg>
-          <input
-            type="text"
-            placeholder="Search by company..."
-            value={search}
-            onChange={(e) => setSearch(e.target.value)}
-            className="w-full pl-9 pr-4 py-2 text-sm rounded-lg border border-gray-200 dark:border-gray-700 bg-white dark:bg-gray-800 text-gray-900 dark:text-white placeholder-gray-400 focus:outline-none focus:ring-2 focus:ring-blue-500"
-          />
-          {search && (
-            <button
-              onClick={() => setSearch("")}
-              className="absolute right-3 top-1/2 -translate-y-1/2 text-gray-400 hover:text-gray-600 dark:hover:text-gray-200"
-            >
-              ×
-            </button>
-          )}
+        {/* Search + Date filter */}
+        <div className="flex flex-wrap gap-12 mt-4 mb-3 items-center">
+          <div className="relative flex-1 min-w-48">
+            <svg xmlns="http://www.w3.org/2000/svg" viewBox="0 0 16 16" fill="currentColor" className="absolute left-3 top-1/2 -translate-y-1/2 w-3.5 h-3.5 text-gray-400 pointer-events-none">
+              <path fillRule="evenodd" d="M9.965 11.026a5 5 0 1 1 1.06-1.06l2.755 2.754a.75.75 0 1 1-1.06 1.06l-2.755-2.754ZM10.5 7a3.5 3.5 0 1 1-7 0 3.5 3.5 0 0 1 7 0Z" clipRule="evenodd" />
+            </svg>
+            <input
+              type="text"
+              placeholder="Search by company..."
+              value={search}
+              onChange={(e) => setSearch(e.target.value)}
+              className="w-full pl-9 pr-4 py-2 text-sm rounded-lg border border-gray-200 dark:border-gray-700 bg-white dark:bg-gray-800 text-gray-900 dark:text-white placeholder-gray-400 focus:outline-none focus:ring-2 focus:ring-blue-500"
+            />
+            {search && (
+              <button
+                onClick={() => setSearch("")}
+                className="absolute right-3 top-1/2 -translate-y-1/2 text-gray-400 hover:text-gray-600 dark:hover:text-gray-200"
+              >
+                ×
+              </button>
+            )}
+          </div>
+          <div className="flex items-center gap-2">
+            <span className="text-xs text-gray-500 dark:text-gray-400 whitespace-nowrap">From</span>
+            <input
+              type="date"
+              value={fromDate}
+              onChange={(e) => { setFromDate(e.target.value); fetchJobs(activeFilter, e.target.value, toDate); }}
+              className="py-2 px-3 text-sm rounded-lg border border-gray-200 dark:border-gray-700 bg-white dark:bg-gray-800 text-gray-900 dark:text-white focus:outline-none focus:ring-2 focus:ring-blue-500"
+            />
+            <span className="text-xs text-gray-500 dark:text-gray-400 whitespace-nowrap">To</span>
+            <input
+              type="date"
+              value={toDate}
+              onChange={(e) => { setToDate(e.target.value); fetchJobs(activeFilter, fromDate, e.target.value); }}
+              className="py-2 px-3 text-sm rounded-lg border border-gray-200 dark:border-gray-700 bg-white dark:bg-gray-800 text-gray-900 dark:text-white focus:outline-none focus:ring-2 focus:ring-blue-500"
+            />
+            {(fromDate || toDate) && (
+              <button
+                onClick={() => { setFromDate(""); setToDate(""); fetchJobs(activeFilter, "", ""); }}
+                className="text-xs text-gray-400 hover:text-gray-600 dark:hover:text-gray-200 whitespace-nowrap"
+              >
+                Clear
+              </button>
+            )}
+          </div>
         </div>
 
         {/* Status filter tabs */}

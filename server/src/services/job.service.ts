@@ -1,11 +1,21 @@
 import { readJobs, writeJobs } from "../utils/fileDb.utils";
 
-export function listJobs(status?: string) {
+export function listJobs(status?: string, fromDate?: string, toDate?: string) {
     const jobs = readJobs();
-    if (status) {
-        return jobs.filter((job: any) => job.status === status);
+    let filtered = status ? jobs.filter((job: any) => job.status === status) : jobs;
+    if (fromDate) {
+        const from = new Date(fromDate).getTime();
+        filtered = filtered.filter((job: any) => job.appliedAt && new Date(job.appliedAt).getTime() >= from);
     }
-    return jobs;
+    if (toDate) {
+        const to = new Date(toDate).getTime() + 86399999; // inclusive of the end day
+        filtered = filtered.filter((job: any) => job.appliedAt && new Date(job.appliedAt).getTime() <= to);
+    }
+    return filtered.sort((a: any, b: any) => {
+        if (!a.appliedAt) return 1;
+        if (!b.appliedAt) return -1;
+        return new Date(b.appliedAt).getTime() - new Date(a.appliedAt).getTime();
+    });
 }
 
 export function addJob(job: any) {
