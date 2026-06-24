@@ -67,6 +67,7 @@ export default function Jobs() {
   const [dropdownPos, setDropdownPos] = useState<{ top: number; left: number } | null>(null);
   const [updating, setUpdating] = useState<string | null>(null);
   const [deleting, setDeleting] = useState<string | null>(null);
+  const [search, setSearch] = useState("");
 
   function computeCounts(allJobs: Job[]) {
     const c: Record<string, number> = { all: allJobs.length };
@@ -163,6 +164,9 @@ export default function Jobs() {
   }
 
   const openJob = jobs.find((j) => j.id === openStatusId);
+  const visibleJobs = search.trim()
+    ? jobs.filter((j) => j.company.toLowerCase().includes(search.trim().toLowerCase()))
+    : jobs;
 
   return (
     <div className="page-bg">
@@ -198,8 +202,30 @@ export default function Jobs() {
           </Link>
         </div>
 
+        {/* Search */}
+        <div className="relative mt-4 mb-3">
+          <svg xmlns="http://www.w3.org/2000/svg" viewBox="0 0 16 16" fill="currentColor" className="absolute left-3 top-1/2 -translate-y-1/2 w-3.5 h-3.5 text-gray-400 pointer-events-none">
+            <path fillRule="evenodd" d="M9.965 11.026a5 5 0 1 1 1.06-1.06l2.755 2.754a.75.75 0 1 1-1.06 1.06l-2.755-2.754ZM10.5 7a3.5 3.5 0 1 1-7 0 3.5 3.5 0 0 1 7 0Z" clipRule="evenodd" />
+          </svg>
+          <input
+            type="text"
+            placeholder="Search by company..."
+            value={search}
+            onChange={(e) => setSearch(e.target.value)}
+            className="w-full pl-9 pr-4 py-2 text-sm rounded-lg border border-gray-200 dark:border-gray-700 bg-white dark:bg-gray-800 text-gray-900 dark:text-white placeholder-gray-400 focus:outline-none focus:ring-2 focus:ring-blue-500"
+          />
+          {search && (
+            <button
+              onClick={() => setSearch("")}
+              className="absolute right-3 top-1/2 -translate-y-1/2 text-gray-400 hover:text-gray-600 dark:hover:text-gray-200"
+            >
+              ×
+            </button>
+          )}
+        </div>
+
         {/* Status filter tabs */}
-        <div className="flex flex-wrap gap-2 mt-4 mb-5">
+        <div className="flex flex-wrap gap-2 mb-5">
           {FILTER_OPTIONS.map(({ value, label }) => (
             <button
               key={value}
@@ -227,11 +253,12 @@ export default function Jobs() {
         {!loading && !error && (
           <>
             <p className="text-muted mb-4">
-              {jobs.length} {jobs.length === 1 ? "application" : "applications"}
+              {visibleJobs.length} {visibleJobs.length === 1 ? "application" : "applications"}
               {activeFilter !== "all" && ` · filtered by ${STATUS_LABELS[activeFilter]}`}
+              {search.trim() && ` · matching "${search.trim()}"`}
             </p>
 
-            {jobs.length === 0 ? (
+            {visibleJobs.length === 0 ? (
               <div className="card p-12 text-center">
                 <p className="text-gray-400 dark:text-gray-500 text-sm mb-4">
                   {activeFilter === "all" ? "No job applications yet." : `No jobs with status "${STATUS_LABELS[activeFilter]}".`}
@@ -257,7 +284,7 @@ export default function Jobs() {
                     </tr>
                   </thead>
                   <tbody>
-                    {jobs.map((job, i) => (
+                    {visibleJobs.map((job, i) => (
                       <tr
                         key={job.id}
                         className={`border-b border-gray-100 dark:border-gray-800 last:border-0 ${
