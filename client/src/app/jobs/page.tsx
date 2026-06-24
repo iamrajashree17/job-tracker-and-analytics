@@ -65,6 +65,7 @@ export default function Jobs() {
   const [openStatusId, setOpenStatusId] = useState<string | null>(null);
   const [dropdownPos, setDropdownPos] = useState<{ top: number; left: number } | null>(null);
   const [updating, setUpdating] = useState<string | null>(null);
+  const [deleting, setDeleting] = useState<string | null>(null);
 
   function computeCounts(allJobs: Job[]) {
     const c: Record<string, number> = { all: allJobs.length };
@@ -142,6 +143,27 @@ export default function Jobs() {
       }
     } finally {
       setUpdating(null);
+    }
+  }
+
+  async function handleDelete(jobId: string) {
+    setDeleting(jobId);
+    try {
+      await axios.delete(`/api/jobs/${jobId}`);
+      setJobs((curr) => curr.filter((j) => j.id !== jobId));
+      setCounts((prev) => {
+        const job = jobs.find((j) => j.id === jobId);
+        if (!job) return prev;
+        return {
+          ...prev,
+          all: Math.max(0, (prev.all ?? 0) - 1),
+          [job.status]: Math.max(0, (prev[job.status] ?? 0) - 1),
+        };
+      });
+    } catch (err: any) {
+      setError(err?.response?.data?.error ?? err?.response?.data?.message ?? "Failed to delete job.");
+    } finally {
+      setDeleting(null);
     }
   }
 
@@ -311,13 +333,30 @@ export default function Jobs() {
                             <span className="text-gray-300 dark:text-gray-600 text-xs">—</span>
                           )}
                         </td>
-                        <td className="px-4 py-4 text-right">
-                          <Link
-                            href={`/jobs/${job.id}/edit`}
-                            className="text-xs text-gray-400 hover:text-blue-600 dark:hover:text-blue-400 transition font-medium"
-                          >
-                            Edit
-                          </Link>
+                        <td className="px-4 py-4">
+                          <div className="flex items-center justify-end gap-3">
+                            <Link
+                              href={`/jobs/${job.id}/edit`}
+                              className="text-gray-400 hover:text-blue-600 dark:hover:text-blue-400 transition inline-block"
+                              title="Edit"
+                            >
+                              <svg xmlns="http://www.w3.org/2000/svg" viewBox="0 0 16 16" fill="currentColor" className="w-3.5 h-3.5">
+                                <path d="M13.488 2.513a1.75 1.75 0 0 0-2.475 0L6.75 6.774a2.75 2.75 0 0 0-.714 1.224l-.449 1.795a.75.75 0 0 0 .914.914l1.795-.45a2.75 2.75 0 0 0 1.224-.713l4.262-4.262a1.75 1.75 0 0 0 0-2.475ZM2.75 3.5a.75.75 0 0 0 0 1.5h4a.75.75 0 0 0 0-1.5h-4Zm0 3a.75.75 0 0 0 0 1.5h2a.75.75 0 0 0 0-1.5h-2Zm0 3a.75.75 0 0 0 0 1.5h5.5a.75.75 0 0 0 0-1.5H2.75Z" />
+                              </svg>
+                            </Link>
+                            {(job.status === "rejected" || job.status === "not_moving_forward") && (
+                              <button
+                                onClick={() => handleDelete(job.id)}
+                                disabled={deleting === job.id}
+                                title="Delete"
+                                className="text-red-400 hover:text-red-600 dark:hover:text-red-400 transition disabled:opacity-40"
+                              >
+                                <svg xmlns="http://www.w3.org/2000/svg" viewBox="0 0 16 16" fill="currentColor" className="w-3.5 h-3.5">
+                                  <path fillRule="evenodd" d="M5 3.25V4H2.75a.75.75 0 0 0 0 1.5h.3l.815 8.15A1.5 1.5 0 0 0 5.357 15h5.285a1.5 1.5 0 0 0 1.493-1.35l.815-8.15h.3a.75.75 0 0 0 0-1.5H11v-.75A2.25 2.25 0 0 0 8.75 1h-1.5A2.25 2.25 0 0 0 5 3.25Zm2.25-.75a.75.75 0 0 0-.75.75V4h3v-.75a.75.75 0 0 0-.75-.75h-1.5ZM6.05 6a.75.75 0 0 1 .787.713l.275 5.5a.75.75 0 0 1-1.498.075l-.275-5.5A.75.75 0 0 1 6.05 6Zm3.9 0a.75.75 0 0 1 .712.787l-.275 5.5a.75.75 0 0 1-1.498-.075l.275-5.5A.75.75 0 0 1 9.95 6Z" clipRule="evenodd" />
+                                </svg>
+                              </button>
+                            )}
+                          </div>
                         </td>
                       </tr>
                     ))}

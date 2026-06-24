@@ -1,5 +1,5 @@
 import { Request, Response } from "express";
-import { addJob, getJob, listJobs, updateJob } from "../services/job.service";
+import { addJob, deleteJob, getJob, listJobs, updateJob } from "../services/job.service";
 
 export function jobHandler(req: Request, res: Response) {
     const status = req.query.status as string | undefined;
@@ -20,6 +20,15 @@ export function addJobHandler(req: Request, res: Response) {
     const job = req.body;
     addJob(job);
     res.status(201).json({ message: "Job added successfully" });
+}
+
+export function deleteJobHandler(req: Request, res: Response) {
+    try {
+        deleteJob(req.params.id as string);
+        res.status(200).json({ message: "Job deleted successfully" });
+    } catch (error) {
+        res.status(404).json({ message: (error as Error).message });
+    }
 }
 
 export function updateJobHandler(req: Request, res: Response) {

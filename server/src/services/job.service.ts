@@ -2,16 +2,26 @@ import { readJobs, writeJobs } from "../utils/fileDb.utils";
 
 export function listJobs(status?: string) {
     const jobs = readJobs();
+    const active = jobs.filter((job: any) => !job.isDeleted);
     if (status) {
-        return jobs.filter((job: any) => job.status === status);
+        return active.filter((job: any) => job.status === status);
     }
-    return jobs;
+    return active;
 }
 
 export function addJob(job: any) {
     const jobs = readJobs();
-    job.id = crypto.randomUUID(),
+    job.id = crypto.randomUUID();
+    job.isDeleted = false;
     jobs.push(job);
+    writeJobs(jobs);
+}
+
+export function deleteJob(jobId: string) {
+    const jobs = readJobs();
+    const jobIndex = jobs.findIndex((job: any) => job.id === jobId);
+    if (jobIndex === -1) throw new Error(`Job with ID ${jobId} not found.`);
+    jobs[jobIndex].isDeleted = true;
     writeJobs(jobs);
 }
 
