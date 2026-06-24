@@ -2,11 +2,10 @@ import { readJobs, writeJobs } from "../utils/fileDb.utils";
 
 export function listJobs(status?: string) {
     const jobs = readJobs();
-    const active = jobs.filter((job: any) => !job.isDeleted);
     if (status) {
-        return active.filter((job: any) => job.status === status);
+        return jobs.filter((job: any) => job.status === status);
     }
-    return active;
+    return jobs;
 }
 
 export function addJob(job: any) {

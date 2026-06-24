@@ -12,6 +12,7 @@ type Job = {
   appliedAt: string | null;
   jobUrl?: string | null;
   notes?: string | null;
+  isDeleted?: boolean;
 };
 
 const STATUS_STYLES: Record<Job["status"], string> = {
@@ -78,7 +79,10 @@ export default function Jobs() {
   function fetchJobs(filter: StatusFilter) {
     setLoading(true);
     setError("");
-    const url = filter === "all" ? "/api/jobs" : `/api/jobs?status=${filter}`;
+    const includeDeleted = filter === "rejected";
+    const url = filter === "all"
+      ? "/api/jobs"
+      : `/api/jobs?status=${filter}${includeDeleted ? "&includeDeleted=true" : ""}`;
     axios
       .get<{ jobs: Job[] }>(url)
       .then((res) => {
@@ -150,16 +154,7 @@ export default function Jobs() {
     setDeleting(jobId);
     try {
       await axios.delete(`/api/jobs/${jobId}`);
-      setJobs((curr) => curr.filter((j) => j.id !== jobId));
-      setCounts((prev) => {
-        const job = jobs.find((j) => j.id === jobId);
-        if (!job) return prev;
-        return {
-          ...prev,
-          all: Math.max(0, (prev.all ?? 0) - 1),
-          [job.status]: Math.max(0, (prev[job.status] ?? 0) - 1),
-        };
-      });
+      setJobs((curr) => curr.map((j) => j.id === jobId ? { ...j, isDeleted: true } : j));
     } catch (err: any) {
       setError(err?.response?.data?.error ?? err?.response?.data?.message ?? "Failed to delete job.");
     } finally {
@@ -266,7 +261,9 @@ export default function Jobs() {
                       <tr
                         key={job.id}
                         className={`border-b border-gray-100 dark:border-gray-800 last:border-0 ${
-                          i % 2 === 0 ? "" : "bg-gray-50 dark:bg-gray-800/40"
+                          job.isDeleted
+                            ? "opacity-40 grayscale pointer-events-none"
+                            : i % 2 === 0 ? "" : "bg-gray-50 dark:bg-gray-800/40"
                         }`}
                       >
                         <td className="px-6 py-4 text-gray-900 dark:text-white font-medium">
@@ -335,16 +332,18 @@ export default function Jobs() {
                         </td>
                         <td className="px-4 py-4">
                           <div className="flex items-center justify-end gap-3">
-                            <Link
-                              href={`/jobs/${job.id}/edit`}
-                              className="text-gray-400 hover:text-blue-600 dark:hover:text-blue-400 transition inline-block"
-                              title="Edit"
-                            >
-                              <svg xmlns="http://www.w3.org/2000/svg" viewBox="0 0 16 16" fill="currentColor" className="w-3.5 h-3.5">
-                                <path d="M13.488 2.513a1.75 1.75 0 0 0-2.475 0L6.75 6.774a2.75 2.75 0 0 0-.714 1.224l-.449 1.795a.75.75 0 0 0 .914.914l1.795-.45a2.75 2.75 0 0 0 1.224-.713l4.262-4.262a1.75 1.75 0 0 0 0-2.475ZM2.75 3.5a.75.75 0 0 0 0 1.5h4a.75.75 0 0 0 0-1.5h-4Zm0 3a.75.75 0 0 0 0 1.5h2a.75.75 0 0 0 0-1.5h-2Zm0 3a.75.75 0 0 0 0 1.5h5.5a.75.75 0 0 0 0-1.5H2.75Z" />
-                              </svg>
-                            </Link>
-                            {(job.status === "rejected" || job.status === "not_moving_forward") && (
+                            {activeFilter !== "rejected" && (
+                              <Link
+                                href={`/jobs/${job.id}/edit`}
+                                className="text-gray-400 hover:text-blue-600 dark:hover:text-blue-400 transition inline-block"
+                                title="Edit"
+                              >
+                                <svg xmlns="http://www.w3.org/2000/svg" viewBox="0 0 16 16" fill="currentColor" className="w-3.5 h-3.5">
+                                  <path d="M13.488 2.513a1.75 1.75 0 0 0-2.475 0L6.75 6.774a2.75 2.75 0 0 0-.714 1.224l-.449 1.795a.75.75 0 0 0 .914.914l1.795-.45a2.75 2.75 0 0 0 1.224-.713l4.262-4.262a1.75 1.75 0 0 0 0-2.475ZM2.75 3.5a.75.75 0 0 0 0 1.5h4a.75.75 0 0 0 0-1.5h-4Zm0 3a.75.75 0 0 0 0 1.5h2a.75.75 0 0 0 0-1.5h-2Zm0 3a.75.75 0 0 0 0 1.5h5.5a.75.75 0 0 0 0-1.5H2.75Z" />
+                                </svg>
+                              </Link>
+                            )}
+                            {(job.status === "rejected" || job.status === "not_moving_forward") && !job.isDeleted && (
                               <button
                                 onClick={() => handleDelete(job.id)}
                                 disabled={deleting === job.id}
