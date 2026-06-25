@@ -1,4 +1,4 @@
-import { readProfile, writeProfile } from "./fileDb";
+import { prisma } from "./prisma";
 
 export interface Profile {
   email: string;
@@ -14,29 +14,56 @@ export interface Profile {
   coverLetter: string;
 }
 
-function envDefaults(): Profile {
+export async function getProfile(): Promise<Profile | null> {
+  const row = await prisma.profile.findFirst();
+  if (!row) return null;
   return {
-    email: process.env.NEXT_PUBLIC_PROFILE_EMAIL ?? "",
-    phone: process.env.NEXT_PUBLIC_PROFILE_PHONE ?? "",
-    role: process.env.NEXT_PUBLIC_PROFILE_ROLE ?? "",
-    linkedin: process.env.NEXT_PUBLIC_PROFILE_LINKEDIN ?? "",
-    github: process.env.NEXT_PUBLIC_PROFILE_GITHUB ?? "",
-    leetcode: process.env.NEXT_PUBLIC_PROFILE_LEETCODE ?? "",
-    neetcode: process.env.NEXT_PUBLIC_PROFILE_NEETCODE ?? "",
-    geeksforgeeks: process.env.NEXT_PUBLIC_PROFILE_GEEKSFORGEEKS ?? "",
-    salaryInr: process.env.NEXT_PUBLIC_PROFILE_SALARY_INR ?? "",
-    salaryUsd: process.env.NEXT_PUBLIC_PROFILE_SALARY_USD ?? "",
-    coverLetter: (process.env.NEXT_PUBLIC_PROFILE_COVER_LETTER ?? "").replace(/\\n/g, "\n"),
+    email: row.email,
+    phone: row.phone ?? "",
+    role: row.role ?? "",
+    linkedin: row.linkedin ?? "",
+    github: row.github ?? "",
+    leetcode: row.leetcode ?? "",
+    neetcode: row.neetcode ?? "",
+    geeksforgeeks: row.geeksforgeeks ?? "",
+    salaryInr: row.salaryInr ?? "",
+    salaryUsd: row.salaryUsd ?? "",
+    coverLetter: row.coverLetter ?? "",
   };
 }
 
-export function getProfile(): Profile {
-  const stored = readProfile();
-  return { ...envDefaults(), ...stored };
-}
+export async function updateProfile(updates: Partial<Profile>): Promise<Profile | null> {
+  const existing = await prisma.profile.findFirst();
+  if (!existing) return null;
 
-export function updateProfile(updates: Partial<Profile>): Profile {
-  const updated = { ...getProfile(), ...updates };
-  writeProfile(updated as Record<string, string>);
-  return updated;
+  const row = await prisma.profile.update({
+    where: { id: existing.id },
+    data: {
+      email: updates.email ?? existing.email,
+      phone: updates.phone ?? existing.phone,
+      role: updates.role ?? existing.role,
+      linkedin: updates.linkedin ?? existing.linkedin,
+      github: updates.github ?? existing.github,
+      leetcode: updates.leetcode ?? existing.leetcode,
+      neetcode: updates.neetcode ?? existing.neetcode,
+      geeksforgeeks: updates.geeksforgeeks ?? existing.geeksforgeeks,
+      salaryInr: updates.salaryInr ?? existing.salaryInr,
+      salaryUsd: updates.salaryUsd ?? existing.salaryUsd,
+      coverLetter: updates.coverLetter ?? existing.coverLetter,
+    },
+  });
+
+  return {
+    email: row.email,
+    phone: row.phone ?? "",
+    role: row.role ?? "",
+    linkedin: row.linkedin ?? "",
+    github: row.github ?? "",
+    leetcode: row.leetcode ?? "",
+    neetcode: row.neetcode ?? "",
+    geeksforgeeks: row.geeksforgeeks ?? "",
+    salaryInr: row.salaryInr ?? "",
+    salaryUsd: row.salaryUsd ?? "",
+    coverLetter: row.coverLetter ?? "",
+  };
 }

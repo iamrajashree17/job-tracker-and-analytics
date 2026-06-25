@@ -15,7 +15,7 @@ export async function GET(request: NextRequest, { params }: { params: Promise<{ 
 
   const { id } = await params;
   try {
-    const job = getJob(id);
+    const job = await getJob(id);
     return Response.json(job);
   } catch {
     return Response.json({ message: "Job not found" }, { status: 404 });
@@ -29,7 +29,7 @@ export async function DELETE(request: NextRequest, { params }: { params: Promise
 
   const { id } = await params;
   try {
-    deleteJob(id);
+    await deleteJob(id);
     return Response.json({ message: "Job deleted successfully" });
   } catch {
     return Response.json({ message: "Job not found" }, { status: 404 });
@@ -44,7 +44,7 @@ export async function PATCH(request: NextRequest, { params }: { params: Promise<
   const { id } = await params;
   const body = await request.json();
   try {
-    updateJob(id, body);
+    await updateJob(id, body);
     return Response.json({ message: "Job updated successfully" });
   } catch {
     return Response.json({ message: "Job not found" }, { status: 404 });

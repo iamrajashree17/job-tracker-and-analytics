@@ -1,10 +1,9 @@
-import { readUsers } from "./fileDb";
+import { prisma } from "./prisma";
 
-export function listUsers() {
-  return readUsers().map((u: any) => ({
-    id: u.id,
-    name: u.name,
-    email: u.email,
-    createdAt: u.createdAt ?? null,
-  }));
+export async function listUsers() {
+  const users = await prisma.user.findMany({
+    select: { id: true, name: true, email: true, createdAt: true },
+    orderBy: { createdAt: "asc" },
+  });
+  return users;
 }

@@ -12,7 +12,7 @@ export async function GET(request: NextRequest) {
   if (!getUser(request)) {
     return Response.json({ error: "Unauthorized" }, { status: 401 });
   }
-  return Response.json({ profile: getProfile() });
+  return Response.json({ profile: await getProfile() });
 }
 
 export async function PUT(request: NextRequest) {
@@ -20,6 +20,6 @@ export async function PUT(request: NextRequest) {
     return Response.json({ error: "Unauthorized" }, { status: 401 });
   }
   const body = await request.json();
-  const profile = updateProfile(body);
+  const profile = await updateProfile(body);
   return Response.json({ profile });
 }
