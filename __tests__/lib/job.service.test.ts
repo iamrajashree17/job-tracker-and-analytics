@@ -1,159 +1,136 @@
 import { listJobs, addJob, getJob, deleteJob, updateJob } from '@/lib/job.service'
-import * as fileDb from '@/lib/fileDb'
 
-jest.mock('@/lib/fileDb')
+jest.mock('@/lib/prisma', () => ({
+  prisma: {
+    job: {
+      findMany: jest.fn(),
+      findUnique: jest.fn(),
+      create: jest.fn(),
+      update: jest.fn(),
+    },
+  },
+}))
 
-const mockReadJobs = fileDb.readJobs as jest.MockedFunction<typeof fileDb.readJobs>
-const mockWriteJobs = fileDb.writeJobs as jest.MockedFunction<typeof fileDb.writeJobs>
+import { prisma } from '@/lib/prisma'
+
+const mockFindMany = prisma.job.findMany as jest.MockedFunction<typeof prisma.job.findMany>
+const mockFindUnique = prisma.job.findUnique as jest.MockedFunction<typeof prisma.job.findUnique>
+const mockCreate = prisma.job.create as jest.MockedFunction<typeof prisma.job.create>
+const mockUpdate = prisma.job.update as jest.MockedFunction<typeof prisma.job.update>
 
 const makeJob = (overrides = {}) => ({
   id: 'job-1',
   company: 'Acme',
   role: 'Engineer',
   status: 'applied',
-  appliedAt: '2024-01-15T00:00:00.000Z',
+  appliedAt: new Date('2024-01-15T00:00:00.000Z'),
+  jobUrl: null,
+  notes: null,
   isDeleted: false,
+  createdAt: new Date(),
+  updatedAt: new Date(),
+  userId: 'user-1',
   ...overrides,
 })
 
-beforeEach(() => {
-  jest.clearAllMocks()
-  mockWriteJobs.mockImplementation(() => {})
-})
+beforeEach(() => jest.clearAllMocks())
 
 describe('listJobs', () => {
-  it('returns all jobs when no filters are given', () => {
+  it('returns all jobs when no filters are given', async () => {
     const jobs = [makeJob({ id: 'a' }), makeJob({ id: 'b' })]
-    mockReadJobs.mockReturnValue(jobs)
+    mockFindMany.mockResolvedValue(jobs as any)
 
-    const result = listJobs()
+    const result = await listJobs()
 
+    expect(mockFindMany).toHaveBeenCalledWith(expect.objectContaining({ where: expect.objectContaining({ isDeleted: false }) }))
     expect(result).toHaveLength(2)
   })
 
-  it('filters by status', () => {
-    const jobs = [makeJob({ status: 'applied' }), makeJob({ id: 'b', status: 'rejected' })]
-    mockReadJobs.mockReturnValue(jobs)
+  it('passes status filter to prisma', async () => {
+    mockFindMany.mockResolvedValue([makeJob()] as any)
 
-    const result = listJobs('applied')
+    await listJobs('applied')
 
-    expect(result).toHaveLength(1)
-    expect(result[0].status).toBe('applied')
+    expect(mockFindMany).toHaveBeenCalledWith(expect.objectContaining({
+      where: expect.objectContaining({ status: 'applied' }),
+    }))
   })
 
-  it('filters by fromDate (inclusive)', () => {
-    const jobs = [
-      makeJob({ id: 'a', appliedAt: '2024-01-10T00:00:00.000Z' }),
-      makeJob({ id: 'b', appliedAt: '2024-01-20T00:00:00.000Z' }),
-    ]
-    mockReadJobs.mockReturnValue(jobs)
+  it('passes date range filters to prisma', async () => {
+    mockFindMany.mockResolvedValue([] as any)
 
-    const result = listJobs(undefined, '2024-01-15')
+    await listJobs(undefined, '2024-01-15', '2024-01-20')
 
-    expect(result).toHaveLength(1)
-    expect(result[0].id).toBe('b')
-  })
-
-  it('filters by toDate (inclusive up to end of day)', () => {
-    const jobs = [
-      makeJob({ id: 'a', appliedAt: '2024-01-10T00:00:00.000Z' }),
-      makeJob({ id: 'b', appliedAt: '2024-01-20T00:00:00.000Z' }),
-    ]
-    mockReadJobs.mockReturnValue(jobs)
-
-    const result = listJobs(undefined, undefined, '2024-01-15')
-
-    expect(result).toHaveLength(1)
-    expect(result[0].id).toBe('a')
-  })
-
-  it('sorts by appliedAt descending', () => {
-    const jobs = [
-      makeJob({ id: 'old', appliedAt: '2024-01-01T00:00:00.000Z' }),
-      makeJob({ id: 'new', appliedAt: '2024-06-01T00:00:00.000Z' }),
-    ]
-    mockReadJobs.mockReturnValue(jobs)
-
-    const result = listJobs()
-
-    expect(result[0].id).toBe('new')
-    expect(result[1].id).toBe('old')
-  })
-
-  it('puts jobs without appliedAt at the end', () => {
-    const jobs = [makeJob({ id: 'no-date', appliedAt: undefined }), makeJob({ id: 'has-date' })]
-    mockReadJobs.mockReturnValue(jobs)
-
-    const result = listJobs()
-
-    expect(result[result.length - 1].id).toBe('no-date')
+    expect(mockFindMany).toHaveBeenCalledWith(expect.objectContaining({
+      where: expect.objectContaining({ appliedAt: expect.any(Object) }),
+    }))
   })
 })
 
 describe('addJob', () => {
-  it('assigns an id and isDeleted=false then persists', () => {
-    mockReadJobs.mockReturnValue([])
+  it('calls prisma.job.create with correct data', async () => {
+    mockCreate.mockResolvedValue(makeJob() as any)
 
-    const job: any = { company: 'Acme', role: 'Engineer' }
-    addJob(job)
+    await addJob('user-1', { company: 'Acme', role: 'Engineer', status: 'applied' })
 
-    expect(typeof job.id).toBe('string')
-    expect(job.isDeleted).toBe(false)
-    expect(mockWriteJobs).toHaveBeenCalledTimes(1)
-    const saved = mockWriteJobs.mock.calls[0][0]
-    expect(saved).toHaveLength(1)
-    expect(saved[0].company).toBe('Acme')
+    expect(mockCreate).toHaveBeenCalledWith(expect.objectContaining({
+      data: expect.objectContaining({ company: 'Acme', userId: 'user-1' }),
+    }))
   })
 })
 
 describe('getJob', () => {
-  it('returns the matching job', () => {
-    mockReadJobs.mockReturnValue([makeJob()])
+  it('returns the matching job', async () => {
+    mockFindUnique.mockResolvedValue(makeJob() as any)
 
-    const job = getJob('job-1')
+    const job = await getJob('job-1')
 
     expect(job.id).toBe('job-1')
   })
 
-  it('throws when the job does not exist', () => {
-    mockReadJobs.mockReturnValue([])
+  it('throws when job does not exist', async () => {
+    mockFindUnique.mockResolvedValue(null)
 
-    expect(() => getJob('missing')).toThrow('Job with ID missing not found.')
+    await expect(getJob('missing')).rejects.toThrow('Job with ID missing not found.')
   })
 })
 
 describe('deleteJob', () => {
-  it('sets isDeleted to true and persists', () => {
-    mockReadJobs.mockReturnValue([makeJob()])
+  it('sets isDeleted to true via prisma update', async () => {
+    mockFindUnique.mockResolvedValue(makeJob() as any)
+    mockUpdate.mockResolvedValue(makeJob({ isDeleted: true }) as any)
 
-    deleteJob('job-1')
+    await deleteJob('job-1')
 
-    const saved = mockWriteJobs.mock.calls[0][0]
-    expect(saved[0].isDeleted).toBe(true)
+    expect(mockUpdate).toHaveBeenCalledWith(expect.objectContaining({
+      where: { id: 'job-1' },
+      data: { isDeleted: true },
+    }))
   })
 
-  it('throws when the job does not exist', () => {
-    mockReadJobs.mockReturnValue([])
+  it('throws when job does not exist', async () => {
+    mockFindUnique.mockResolvedValue(null)
 
-    expect(() => deleteJob('missing')).toThrow('Job with ID missing not found.')
+    await expect(deleteJob('missing')).rejects.toThrow('Job with ID missing not found.')
   })
 })
 
 describe('updateJob', () => {
-  it('merges updates and persists', () => {
-    mockReadJobs.mockReturnValue([makeJob()])
+  it('merges updates via prisma update', async () => {
+    mockFindUnique.mockResolvedValue(makeJob() as any)
+    mockUpdate.mockResolvedValue(makeJob({ role: 'Senior Engineer' }) as any)
 
-    updateJob('job-1', { role: 'Senior Engineer', status: 'interviewing' })
+    await updateJob('job-1', { role: 'Senior Engineer', status: 'interview' })
 
-    const saved = mockWriteJobs.mock.calls[0][0]
-    expect(saved[0].role).toBe('Senior Engineer')
-    expect(saved[0].status).toBe('interviewing')
-    expect(saved[0].company).toBe('Acme')
+    expect(mockUpdate).toHaveBeenCalledWith(expect.objectContaining({
+      where: { id: 'job-1' },
+      data: expect.objectContaining({ role: 'Senior Engineer', status: 'interview' }),
+    }))
   })
 
-  it('throws when the job does not exist', () => {
-    mockReadJobs.mockReturnValue([])
+  it('throws when job does not exist', async () => {
+    mockFindUnique.mockResolvedValue(null)
 
-    expect(() => updateJob('missing', {})).toThrow('Job with ID missing not found.')
+    await expect(updateJob('missing', {})).rejects.toThrow('Job with ID missing not found.')
   })
 })

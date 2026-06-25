@@ -18,16 +18,17 @@ export async function GET(request: NextRequest) {
   const fromDate = searchParams.get("fromDate") ?? undefined;
   const toDate = searchParams.get("toDate") ?? undefined;
 
-  const jobs = listJobs(status, fromDate, toDate);
+  const jobs = await listJobs(status, fromDate, toDate);
   return Response.json({ jobs });
 }
 
 export async function POST(request: NextRequest) {
-  if (!getUser(request)) {
+  const user = getUser(request);
+  if (!user) {
     return Response.json({ error: "Unauthorized" }, { status: 401 });
   }
 
   const body = await request.json();
-  addJob(body);
+  await addJob(user.id, body);
   return Response.json({ message: "Job added successfully" }, { status: 201 });
 }

@@ -4,7 +4,7 @@ import { login } from "@/lib/auth.service";
 export async function POST(request: Request) {
   try {
     const body = await request.json();
-    const result = login(body);
+    const result = await login(body);
     const response = NextResponse.json(result, { status: result.status });
 
     if (result.status === 200 && result.user) {

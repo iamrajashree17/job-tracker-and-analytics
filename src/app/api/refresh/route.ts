@@ -8,7 +8,7 @@ export async function POST(request: NextRequest) {
     return Response.json({ error: "No refresh token" }, { status: 401 });
   }
 
-  const result = refresh(refreshToken);
+  const result = await refresh(refreshToken);
 
   if (result.status !== 200) {
     return Response.json(result, { status: result.status });
