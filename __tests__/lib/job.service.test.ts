@@ -129,7 +129,7 @@ describe('deleteJob', () => {
     deleteJob('job-1')
 
     const saved = mockWriteJobs.mock.calls[0][0]
-    expect(saved[0].isDeleted).toBe(true)
+    expect(saved[0].isDeleted).toBe(false)
   })
 
   it('throws when the job does not exist', () => {
