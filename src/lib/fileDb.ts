@@ -38,3 +38,15 @@ export function readTokens(): string[] {
 export function writeTokens(tokens: string[]): void {
   fs.writeFileSync(path.join(DATA_DIR, "refreshTokens.json"), JSON.stringify(tokens, null, 2), "utf-8");
 }
+
+export function readProfile(): Record<string, string> {
+  try {
+    return JSON.parse(fs.readFileSync(path.join(DATA_DIR, "profile.json"), "utf-8"));
+  } catch {
+    return {};
+  }
+}
+
+export function writeProfile(profile: Record<string, string>): void {
+  fs.writeFileSync(path.join(DATA_DIR, "profile.json"), JSON.stringify(profile, null, 2), "utf-8");
+}
