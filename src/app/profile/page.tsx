@@ -81,10 +81,11 @@ export default function ProfilePage() {
   const [copiedKey, setCopiedKey] = useState<string | null>(null);
 
   useEffect(() => {
-    axios.get<{ profile: Profile }>("/api/profile")
+    axios.get<{ profile: Profile | null }>("/api/profile")
       .then((res) => {
-        setProfile(res.data.profile);
-        setDraft(res.data.profile);
+        const p = res.data.profile ?? EMPTY;
+        setProfile(p);
+        setDraft(p);
       })
       .catch(() => setError("Failed to load profile."))
       .finally(() => setLoading(false));

@@ -7,11 +7,15 @@ const PUBLIC_PATHS = [
   "/api/signup",
   "/api/refresh",
   "/api/logout",
+  "/api/auth/google",
+  "/api/auth/google/callback",
 ];
 
 function isTokenExpired(token: string): boolean {
   try {
-    const payload = JSON.parse(atob(token.split(".")[1]));
+    const base64url = token.split(".")[1];
+    const base64 = base64url.replace(/-/g, "+").replace(/_/g, "/");
+    const payload = JSON.parse(atob(base64));
     return payload.exp * 1000 < Date.now();
   } catch {
     return true;
@@ -48,14 +52,14 @@ async function attemptRefresh(request: NextRequest): Promise<NextResponse> {
     response.cookies.set("token", data.accessToken, {
       httpOnly: true,
       secure: process.env.NODE_ENV === "production",
-      sameSite: "strict",
+      sameSite: "lax",
       maxAge: 60 * 60,
       path: "/",
     });
     response.cookies.set("refreshToken", data.refreshToken, {
       httpOnly: true,
       secure: process.env.NODE_ENV === "production",
-      sameSite: "strict",
+      sameSite: "lax",
       maxAge: 60 * 60 * 24 * 7,
       path: "/",
     });
