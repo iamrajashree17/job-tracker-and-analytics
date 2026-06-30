@@ -11,14 +11,14 @@ export async function POST(request: Request) {
       response.cookies.set("token", result.user.accessToken, {
         httpOnly: true,
         secure: process.env.NODE_ENV === "production",
-        sameSite: "strict",
+        sameSite: "lax",
         maxAge: 60 * 15,
         path: "/",
       });
       response.cookies.set("refreshToken", result.user.refreshToken, {
         httpOnly: true,
         secure: process.env.NODE_ENV === "production",
-        sameSite: "strict",
+        sameSite: "lax",
         maxAge: 7 * 24 * 60 * 60,
         path: "/",
       });

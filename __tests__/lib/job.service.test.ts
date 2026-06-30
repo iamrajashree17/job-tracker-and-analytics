@@ -36,20 +36,22 @@ const makeJob = (overrides = {}) => ({
 beforeEach(() => jest.clearAllMocks())
 
 describe('listJobs', () => {
-  it('returns all jobs when no filters are given', async () => {
+  it('returns jobs for the given user', async () => {
     const jobs = [makeJob({ id: 'a' }), makeJob({ id: 'b' })]
     mockFindMany.mockResolvedValue(jobs as any)
 
-    const result = await listJobs()
+    const result = await listJobs('user-1')
 
-    expect(mockFindMany).toHaveBeenCalledWith(expect.objectContaining({ where: expect.objectContaining({ isDeleted: false }) }))
+    expect(mockFindMany).toHaveBeenCalledWith(expect.objectContaining({
+      where: expect.objectContaining({ userId: 'user-1', isDeleted: false }),
+    }))
     expect(result).toHaveLength(2)
   })
 
   it('passes status filter to prisma', async () => {
     mockFindMany.mockResolvedValue([makeJob()] as any)
 
-    await listJobs('applied')
+    await listJobs('user-1', 'applied')
 
     expect(mockFindMany).toHaveBeenCalledWith(expect.objectContaining({
       where: expect.objectContaining({ status: 'applied' }),
@@ -59,7 +61,7 @@ describe('listJobs', () => {
   it('passes date range filters to prisma', async () => {
     mockFindMany.mockResolvedValue([] as any)
 
-    await listJobs(undefined, '2024-01-15', '2024-01-20')
+    await listJobs('user-1', undefined, '2024-01-15', '2024-01-20')
 
     expect(mockFindMany).toHaveBeenCalledWith(expect.objectContaining({
       where: expect.objectContaining({ appliedAt: expect.any(Object) }),
@@ -80,10 +82,10 @@ describe('addJob', () => {
 })
 
 describe('getJob', () => {
-  it('returns the matching job', async () => {
+  it('returns the matching job for the owner', async () => {
     mockFindUnique.mockResolvedValue(makeJob() as any)
 
-    const job = await getJob('job-1')
+    const job = await getJob('job-1', 'user-1')
 
     expect(job.id).toBe('job-1')
   })
@@ -91,7 +93,13 @@ describe('getJob', () => {
   it('throws when job does not exist', async () => {
     mockFindUnique.mockResolvedValue(null)
 
-    await expect(getJob('missing')).rejects.toThrow('Job with ID missing not found.')
+    await expect(getJob('missing', 'user-1')).rejects.toThrow('Job not found.')
+  })
+
+  it('throws when job belongs to a different user', async () => {
+    mockFindUnique.mockResolvedValue(makeJob({ userId: 'user-1' }) as any)
+
+    await expect(getJob('job-1', 'other-user')).rejects.toThrow('Job not found.')
   })
 })
 
@@ -100,7 +108,7 @@ describe('deleteJob', () => {
     mockFindUnique.mockResolvedValue(makeJob() as any)
     mockUpdate.mockResolvedValue(makeJob({ isDeleted: true }) as any)
 
-    await deleteJob('job-1')
+    await deleteJob('job-1', 'user-1')
 
     expect(mockUpdate).toHaveBeenCalledWith(expect.objectContaining({
       where: { id: 'job-1' },
@@ -111,7 +119,7 @@ describe('deleteJob', () => {
   it('throws when job does not exist', async () => {
     mockFindUnique.mockResolvedValue(null)
 
-    await expect(deleteJob('missing')).rejects.toThrow('Job with ID missing not found.')
+    await expect(deleteJob('missing', 'user-1')).rejects.toThrow('Job not found.')
   })
 })
 
@@ -120,7 +128,7 @@ describe('updateJob', () => {
     mockFindUnique.mockResolvedValue(makeJob() as any)
     mockUpdate.mockResolvedValue(makeJob({ role: 'Senior Engineer' }) as any)
 
-    await updateJob('job-1', { role: 'Senior Engineer', status: 'interview' })
+    await updateJob('job-1', 'user-1', { role: 'Senior Engineer', status: 'interview' })
 
     expect(mockUpdate).toHaveBeenCalledWith(expect.objectContaining({
       where: { id: 'job-1' },
@@ -131,6 +139,6 @@ describe('updateJob', () => {
   it('throws when job does not exist', async () => {
     mockFindUnique.mockResolvedValue(null)
 
-    await expect(updateJob('missing', {})).rejects.toThrow('Job with ID missing not found.')
+    await expect(updateJob('missing', 'user-1', {})).rejects.toThrow('Job not found.')
   })
 })

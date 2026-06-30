@@ -1,8 +1,9 @@
 import { prisma } from "./prisma";
 
-export async function listJobs(status?: string, fromDate?: string, toDate?: string) {
+export async function listJobs(userId: string, status?: string, fromDate?: string, toDate?: string) {
   return prisma.job.findMany({
     where: {
+      userId,
       isDeleted: false,
       ...(status ? { status } : {}),
       ...(fromDate || toDate
@@ -39,19 +40,19 @@ export async function addJob(userId: string, data: {
   });
 }
 
-export async function getJob(jobId: string) {
+export async function getJob(jobId: string, userId: string) {
   const job = await prisma.job.findUnique({ where: { id: jobId } });
-  if (!job) throw new Error(`Job with ID ${jobId} not found.`);
+  if (!job || job.userId !== userId) throw new Error(`Job not found.`);
   return job;
 }
 
-export async function deleteJob(jobId: string) {
+export async function deleteJob(jobId: string, userId: string) {
   const job = await prisma.job.findUnique({ where: { id: jobId } });
-  if (!job) throw new Error(`Job with ID ${jobId} not found.`);
+  if (!job || job.userId !== userId) throw new Error(`Job not found.`);
   return prisma.job.update({ where: { id: jobId }, data: { isDeleted: true } });
 }
 
-export async function updateJob(jobId: string, updates: {
+export async function updateJob(jobId: string, userId: string, updates: {
   company?: string;
   role?: string;
   status?: string;
@@ -60,7 +61,7 @@ export async function updateJob(jobId: string, updates: {
   notes?: string;
 }) {
   const job = await prisma.job.findUnique({ where: { id: jobId } });
-  if (!job) throw new Error(`Job with ID ${jobId} not found.`);
+  if (!job || job.userId !== userId) throw new Error(`Job not found.`);
   return prisma.job.update({
     where: { id: jobId },
     data: {

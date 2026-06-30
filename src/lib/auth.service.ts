@@ -2,6 +2,29 @@ import bcrypt from "bcryptjs";
 import { prisma } from "./prisma";
 import { generateAccessToken, generateRefreshToken, verifyRefreshToken } from "./jwt";
 
+export async function loginOrCreateGoogleUser(data: { googleId: string; email: string; name: string }) {
+  const { googleId, email, name } = data;
+
+  let user = await prisma.user.findUnique({ where: { googleId } });
+
+  if (!user) {
+    const existing = await prisma.user.findUnique({ where: { email } });
+    if (existing) {
+      user = await prisma.user.update({ where: { id: existing.id }, data: { googleId } });
+    } else {
+      user = await prisma.user.create({ data: { name, email, googleId } });
+    }
+  }
+
+  const accessToken = generateAccessToken(user);
+  const refreshToken = generateRefreshToken(user);
+
+  return {
+    status: 200 as const,
+    user: { id: user.id, name: user.name, email: user.email, accessToken, refreshToken },
+  };
+}
+
 export async function signup(body: { name: string; email: string; password: string }) {
   const { name, email, password } = body;
   if (!name || !email || !password) {
@@ -32,6 +55,10 @@ export async function login(body: { email: string; password: string }) {
 
   const user = await prisma.user.findUnique({ where: { email } });
   if (!user) return { status: 404, message: "User not found" };
+
+  if (!user.password) {
+    return { status: 400, message: "This account uses Google Sign-In. Please sign in with Google." };
+  }
 
   if (!bcrypt.compareSync(password, user.password)) {
     return { status: 401, message: "Invalid password" };

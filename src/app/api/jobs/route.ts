@@ -1,15 +1,16 @@
 import { NextRequest } from "next/server";
-import { verifyAccessToken } from "@/lib/jwt";
+import { verifyAccessToken, JwtPayload } from "@/lib/jwt";
 import { listJobs, addJob } from "@/lib/job.service";
 
-function getUser(request: NextRequest) {
+function getUser(request: NextRequest): JwtPayload | null {
   const token = request.headers.get("x-access-token");
   if (!token) return null;
   return verifyAccessToken(token);
 }
 
 export async function GET(request: NextRequest) {
-  if (!getUser(request)) {
+  const user = getUser(request);
+  if (!user) {
     return Response.json({ error: "Unauthorized" }, { status: 401 });
   }
 
@@ -18,7 +19,7 @@ export async function GET(request: NextRequest) {
   const fromDate = searchParams.get("fromDate") ?? undefined;
   const toDate = searchParams.get("toDate") ?? undefined;
 
-  const jobs = await listJobs(status, fromDate, toDate);
+  const jobs = await listJobs(user.id, status, fromDate, toDate);
   return Response.json({ jobs });
 }
 
